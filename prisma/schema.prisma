@@ -6,3 +6,66 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
+
+enum ContractStatus {
+  ACTIVE
+  SUSPENDED
+  TERMINATED
+}
+
+model Contract {
+  id           String         @id @default(uuid()) @db.Uuid
+  number       Int            @unique
+  status       ContractStatus
+  address      String         @db.Text
+  createdAt    DateTime       @default(now()) @db.Timestamptz()
+  updatedAt    DateTime       @updatedAt @db.Timestamptz()
+  terminatedAt DateTime?      @db.Timestamptz()
+  payments     Payment[]
+
+  @@map("contracts")
+}
+
+enum PlanSpeedUnit {
+  MBPS
+  GBPS
+}
+
+model Plan {
+  id            String        @id @default(uuid()) @db.Uuid
+  name          String        @db.VarChar(255)
+  uploadSpeed   Int
+  downloadSpeed Int
+  speedUnit     PlanSpeedUnit
+  description   String?       @db.Text
+  price         Int // in cents
+  createdAt     DateTime      @default(now()) @db.Timestamptz()
+  updatedAt     DateTime      @updatedAt @db.Timestamptz()
+
+  @@map("plans")
+}
+
+enum PaymentReportStatus {
+  PENDING
+  CONFIRMED
+  REJECTED
+}
+
+model PaymentReport {
+  id              String              @id @default(uuid()) @db.Uuid
+  amount          Int // in cents
+  status          PaymentReportStatus
+  enchangeRate    Float               @db.DoublePrecision // BCV rate at the time of payment.
+  bankName        String              @db.VarChar(255)
+  nationalId      String              @db.VarChar(255) // National Identification number of the person who made the payment.
+  referenceNumber String              @db.VarChar(255) // Reference number of the payment.
+  paymentDate     DateTime            @db.Timestamptz()
+  createdAt       DateTime            @default(now()) @db.Timestamptz()
+  updatedAt       DateTime            @updatedAt @db.Timestamptz()
+
+  // change this, it is m2m
+  contractId String   @db.Uuid
+  contract   Contract @relation(fields: [contractId], references: [id])
+
+  @@map("payments")
+}
